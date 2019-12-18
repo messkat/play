@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+
+<project name="labelsource" basedir=".">
+
+   <xmlpeek file="build.version.xml" xpath="/build/branch/@value" property="branch.name" failonerror="true"/>
+   <xmlpeek file="build.version.xml" xpath="/build/build/@value" property="build.number" failonerror="true"/>
+   <xmlpeek file="build.version.xml" xpath="/build/version/@value" property="version.number" failonerror="true"/> 
+
+  <property name="build.label" value="${version.number}.${build.number}" />
+
+
+<property name="git.root.repository" value="C:\git"/>
+<property name="build.root.dir" value="${git.root.repository}"/>
+<property name="git" value="git" />
+<property name="git.switches.add" value=""/>
+
+<!-- Update data scripts -->
+  <target name="update.data.scripts" >
+	<property name="formatted.version" value="${string::replace(version.number, '.D', '')}" />
+	<property name="common.file" value="Common_${formatted.version}_Data.sql" />
+	<property name="partitioned.file" value="Partitioned_${formatted.version}_Data.sql" />
+	<property name="datascript.dir" value="${build.root.dir}\Source\MbiDb\mbidbproj\Scripts\DataScripts" />
+<!--property name="datascript.repository" value="${tfs.root.repository}/Source/MbiDb/mbidbproj/Scripts/DataScripts" /-->
+	<script language="C#">
+		<code><![CDATA[
+		public static void ScriptMain(Project project) 
+		{
+			
+			string commonFile	= string.Format("{0}\\{1}", project.Properties["datascript.dir"], project.Properties["common.file"]);
+			string partitionedFile	= string.Format("{0}\\{1}", project.Properties["datascript.dir"], project.Properties["partitioned.file"]);
+			
+			string productVersion =	string.Format("{0}", project.Properties["version.number"]);
+			string buildNumber = string.Format("{0}", project.Properties["build.number"]);
+
+			AppendInfo(commonFile, buildNumber, productVersion);
+			AppendInfo(partitionedFile, buildNumber, productVersion);		
+		}
+		
+
+		public static void AppendInfo(string filePath, string buildNumber,	string productVersion)
+		{
+			// Replaces the	string between the end of the searchString and the next	semiColon
+			StreamWriter writer = null;
+			
+			try
+			{
+				if (File.Exists(filePath))
+				{
+					String fileContents	=  "--*******" + productVersion + "." +  buildNumber + "*******--";				
+					
+					writer	= new StreamWriter(filePath, true);
+					writer.WriteLine();
+					writer.WriteLine(fileContents);
+					writer.Close();
+				}
+				else
+				{
+					throw new Exception( string.Format("The	file {0} was not found", filePath));
+				}
+			}
+			catch(Exception ex)
+			{
+				if(writer != null)
+				{
+					writer.Close();
+				}
+				
+				throw ex;
+			}
+				
+
+		}
+			]]>
+		</code>
+	</script>
+
+	<exec program="${git}" workingdir="." commandline="add Source\MbiDb\mbidbproj\Scripts\DataScripts\${common.file} ${git.switches.add}" verbose="true" failonerror="true"/>
+	<sleep seconds="3"/>
+	<exec program="${git}" workingdir="."  commandline="add Source\MbiDb\mbidbproj\Scripts\DataScripts\${partitioned.file} ${git.switches.add}" verbose="true" failonerror="true"/>
+
+        <exec program="${git}" workingdir="." commandline="commit -m &quot;updating data scripts for build&quot;" verbose="true" />
+
+</target>
+
+
+</project>

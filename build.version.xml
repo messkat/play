@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<build>
+  <branch value="7.15.0_development" />
+  <version value="7.15.0.D" />
+  <build value="11" />
+</build>
